@@ -56,6 +56,7 @@ static void ex_disp_flush(int32_t x1, int32_t y1, int32_t x2, int32_t y2, const 
   tft->setAddrWindow(x1, y1, x2, y2);
   tft->pushColors((uint8_t *)color_array, size);
   lv_flush_ready();
+  Serial.printf("ex_disp_flush: x1=%d, x2=%d, y1=%d, y2=%d\r\n", x1, x2, y1, y2);
 }
 
 int tftGetScreenWidth()
@@ -134,11 +135,13 @@ void display_init()
   };
   lv_indev_drv_register(&indev_drv);
 
-  lvTicker1.attach_ms(1, [] {
-    lv_tick_inc(1);
+  lvTicker1.attach_ms(20, [] {
+    // Serial.printf("lv_tick_inc(20) @ Core: %d\r\n", xPortGetCoreID());
+    lv_tick_inc(20);
   });
 
-  lvTicker2.attach_ms(5, [] {
+  lvTicker2.attach_ms(4, [] {
+    // Serial.printf("lv_task_handler() @ Core: %d\r\n", xPortGetCoreID());
     lv_task_handler();
   });
 

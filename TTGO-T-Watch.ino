@@ -107,14 +107,13 @@ void syncSystemTimeByRtc()
 void setup()
 {
   Serial.begin(115200);
+  Serial.println("booting ...");
 
   g_sync_event_group = xEventGroupCreate();
 
   g_event_queue_handle = xQueueCreate(TASK_QUEUE_MESSAGE_LEN, sizeof(task_event_data_t));
 
   SPI.begin(TFT_SCLK, TFT_MISO, TFT_MOSI, -1);
-
-  lv_filesystem_init();
 
   display_init();
 
@@ -136,6 +135,8 @@ void setup()
     backlight_adjust(level);
     delay(100);
   }
+
+  lv_filesystem_init();
 
   axp.enableIRQ(AXP202_ALL_IRQ, AXP202_OFF);
 
