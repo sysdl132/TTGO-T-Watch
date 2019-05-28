@@ -1,15 +1,9 @@
 TTGO T-Watch    
 =================================
-<img src="img/1.jpg" height="400"/>
-<img src="img/2.jpg" height="400"/>
-
+![](img/1.jpg)
 
 T-Watch is an ESP32-based smart watch hardware designed by Shenzhen Xinyuan Electronics Co., Ltd. Hardware configuration with main core SOC (ESP32), 16MBytes large flash, 8MBytes external SPRAM, integrated multi-channel programmable power management chip ( AXP202), onboard three-axis accelerometer (BMA423), built-in step counter algorithm and other multi-function GSensor, with a variety of different configurations of internal replaceable backplane, such as LORA, GPS, SIM, SD
 
-# Components and libraries
-- PCF8563_Class -> RTC
-- AXP20X_Class -> PMIC
-- 
 # PinOut
 | Name        | Pins |
 | ----------- | ---- |
@@ -45,14 +39,34 @@ T-Watch is an ESP32-based smart watch hardware designed by Shenzhen Xinyuan Elec
 - (on state) -> long press for two seconds to release, deep sleep
 
 ## Note:
+- The default program does not open any sub-modules. If you need to use other modules, enable the corresponding module in `board_def.h` to enable
+    ```
+    // #define UBOX_GPS_MODULE      //Turning on will open the M8/M6 GPS module
+    // #define ACSIP_S7XG_MODULE    //Turning on will open the S7XG GPS/LORA module
+    // #define ENABLE_BLE           //Turning on will open the BLE module
+    ```
+
+- BLE only supports the corresponding UUID of the connection and cannot connect to the UUID that does not exist in the program. BLE server reference code [Soil-BLE-Server](https://github.com/lewisxhe/simple-ble)
+  
 - WIFI connection is only used as time synchronization
 
 - `AXP202X_Library` will have set the DCDC3 output enable to normally open, because DCDC3 will supply power to the ESP32 main chip. If using other methods of control, please be careful not to turn off DCDC3, otherwise it will not be able to burn the program.
   
+- The repository depends on other library files, please recursively clone the repository
+    ```
+    git clone --recursive https://github.com/Xinyuan-LilyGO/TTGO-T-Watch
+    ```
+
+- Then move the library files in the `libraries` directory to
+    ```
+    C:\Users\<UserName>\Documents\Arduino\libraries
+    ```
 - In the Arduino board select `TTGO T-Watch`, the PSRAM is enabled by default, if it is not turned on, please open it.
 
 ## Known issue
-- TODO
+- Updating the GPS information screen for a long time will cause the program to run away
+- BLE connection sometimes causes the program to run away
+- The S7XG module only implements ping-pong sending and receiving, and the LORAWALN function is not implemented. For details, refer to the example in the datasheet.
 
 
 ## Low power consumption:
