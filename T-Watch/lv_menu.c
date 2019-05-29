@@ -17,11 +17,6 @@
 #include "esp_wifi.h"
 
 extern xQueueHandle g_event_queue_handle;
-extern const char *get_wifi_channel();
-extern const char *get_wifi_rssi();
-extern const char *get_wifi_ssid();
-extern const char *get_wifi_address();
-extern const char *get_wifi_mac();
 extern int get_batt_percentage();
 extern int get_ld1_status();
 extern int get_ld2_status();
@@ -171,15 +166,11 @@ static void lv_setWinMenuHeader(const char *title, const void *img_src, lv_actio
 
 static lv_res_t lv_file_setting(lv_obj_t *par);
 static lv_res_t lv_setting(lv_obj_t *par);
-static lv_res_t lv_gps_setting(lv_obj_t *par);
-static lv_res_t lv_wifi_setting(lv_obj_t *par);
 static lv_res_t lv_motion_setting(lv_obj_t *par);
 static lv_res_t lv_power_setting(lv_obj_t *par);
 
-static void lv_wifi_setting_destroy();
 static void lv_file_setting_destroy();
 static void lv_motion_setting_destroy();
-static void lv_connect_wifi(const char *password);
 static void lv_power_setting_destroy(void);
 static void  lv_setting_destroy(void);
 
@@ -215,16 +206,8 @@ static lv_gps_struct_t gps_data[] = {
   {.name = "speed:"}      //kmph
 };
 
-static lv_wifi_struct_t wifi_data[] = {
-  {.name = "SSID", .get_val = get_wifi_ssid},
-  {.name = "IP", .get_val = get_wifi_address},
-  {.name = "RSSI", .get_val = get_wifi_rssi},
-  {.name = "CHL", .get_val = get_wifi_channel},
-  {.name = "MAC", .get_val = get_wifi_mac},
-};
 
 static lv_menu_struct_t menu_data[] = {
-  {.name = "WiFi", .callback = lv_wifi_setting, .destroy = lv_wifi_setting_destroy, .src_img = &img_wifi},
   {.name = "Power", .callback = lv_power_setting, .destroy = lv_power_setting_destroy, .src_img = &img_power},
   {.name = "Setting", .callback = lv_setting, .destroy = lv_setting_destroy, .src_img = &img_setting},
   {.name = "SD Card", .callback = lv_file_setting, .destroy = lv_file_setting_destroy, .src_img = &img_folder},
@@ -1129,138 +1112,6 @@ static void create_keyboard()
   lv_kb_set_ta(passkeyboard, pass);
   lv_btnm_set_action(passkeyboard, btnm_action);
 }
-
-static void lv_connect_wifi(const char *password)
-{
-  lv_obj_set_hidden(g_menu_win, false);
-  lv_obj_clean(gContainer);
-
-  wifi_connect_label = lv_label_create(gContainer, NULL);
-  lv_label_set_text(wifi_connect_label, "Connecting...");
-  lv_obj_align(wifi_connect_label, gContainer, LV_ALIGN_CENTER, 0, 0);
-
-#ifdef ESP32
-  strlcpy(auth.password, password, sizeof(auth.password));
-  task_event_data_t event_data;
-  event_data.type = MESS_EVENT_WIFI;
-  event_data.wifi.event = LVGL_WIFI_CONFIG_TRY_CONNECT;
-  event_data.wifi.ctx = &auth;
-  printf("ssid:%s password:%s \n", auth.ssid, auth.password);
-  xQueueSend(g_event_queue_handle, &event_data, portMAX_DELAY);
-#endif
-}
-
-static void lv_refs_wifi(void *param)
-{
-  lv_obj_set_hidden(g_menu_win, false);
-  lv_obj_del(gContainer);
-  gContainer = NULL;
-  gObjecter = NULL;
-  lv_wifi_setting(g_menu_win);
-}
-
-void lv_wifi_connect_fail()
-{
-  lv_label_set_text(wifi_connect_label, "Connect FAIL");
-  lv_obj_align(wifi_connect_label, gContainer, LV_ALIGN_CENTER, 0, -10);
-  lv_timer_start(lv_refs_wifi, 800, NULL);
-}
-
-void lv_wifi_connect_pass()
-{
-  lv_label_set_text(wifi_connect_label, "Connect PASS");
-  lv_obj_align(wifi_connect_label, gContainer, LV_ALIGN_CENTER, 0, -10);
-  lv_timer_start(lv_refs_wifi, 800, NULL);
-}
-
-/*********************************************************************
-
-                            WIFI
-
- * ******************************************************************/
-static void lv_wifi_setting_destroy()
-{
-  lv_obj_del(gContainer);
-  gContainer = NULL;
-  gObjecter = NULL;
-}
-
-static lv_res_t wifiap_list_action(lv_obj_t *obj)
-{
-  const char *ssid = lv_list_get_btn_text(obj);
-#ifdef ESP32
-  strlcpy(auth.ssid, ssid, sizeof(auth.ssid));
-  printf("auth ssid:%s\n", auth.ssid);
-#else
-  printf("auth ssid:%s\n", ssid);
-#endif
-  create_keyboard();
-  return LV_RES_OK;
-}
-
-
-uint8_t lv_wifi_list_add(const char *ssid, int32_t rssi, uint8_t ch)
-{
-  if (!gObjecter) {
-    lv_setWinBtnInvaild(true);
-    lv_obj_clean(gContainer);
-    gObjecter = lv_list_create(gContainer, NULL);
-    lv_obj_set_size(gObjecter,  g_menu_view_width, g_menu_view_height);
-    lv_obj_align(gObjecter, gContainer, LV_ALIGN_CENTER, 0, 0);
-    lv_obj_set_style(gObjecter, &lv_style_transp_fit);
-
-  }
-  lv_list_add(gObjecter, SYMBOL_WIFI, ssid, wifiap_list_action);
-  return LV_RES_OK;
-}
-
-static lv_res_t wifi_scan_btn_cb(struct _lv_obj_t *obj)
-{
-#ifdef ESP32
-  lv_setWinBtnInvaild(false);
-  task_event_data_t event_data;
-  event_data.type = MESS_EVENT_WIFI;
-  event_data.wifi.event = LVGL_WIFI_CONFIG_SCAN;
-  xQueueSend(g_event_queue_handle, &event_data, portMAX_DELAY);
-  lv_obj_clean(gContainer);
-  lv_obj_t *label = lv_label_create(gContainer, NULL);
-  lv_label_set_text(label, "Scaning...");
-  lv_obj_align(label, NULL, LV_ALIGN_CENTER, 0, -10);
-#else
-  const char *ssid[] = {"A", "B"};
-  for (int i = 0; i < 2; i++) {
-    lv_wifi_list_add(ssid[i], 0, 0);
-  }
-#endif
-  return LV_RES_OK;
-}
-
-static lv_res_t lv_wifi_setting(lv_obj_t *par)
-{
-  lv_obj_t *label = NULL;
-  gContainer = lv_obj_create(par, NULL);
-  lv_obj_set_size(gContainer,  g_menu_view_width, g_menu_view_height);
-  lv_obj_set_style(gContainer, &lv_style_transp_fit);
-  for (int i = 0; i < sizeof(wifi_data) / sizeof(wifi_data[0]); ++i) {
-
-    wifi_data[i].label = lv_label_create(gContainer, NULL);
-    snprintf(buff, sizeof(buff), "%s:%s", wifi_data[i].name, wifi_data[i].get_val());
-    lv_label_set_text(wifi_data[i].label, buff);
-    if (!i)
-      lv_obj_align(wifi_data[i].label, gContainer, LV_ALIGN_IN_TOP_MID, 0, 0);
-    else
-      lv_obj_align(wifi_data[i].label, wifi_data[i - 1].label, LV_ALIGN_OUT_BOTTOM_MID, 0, 0);
-  }
-
-  lv_obj_t *scanbtn = lv_btn_create(gContainer, NULL);
-  lv_obj_align(scanbtn, gContainer, LV_ALIGN_IN_BOTTOM_MID, 0, 0);
-  lv_obj_set_size(scanbtn, 100, 25);
-  label = lv_label_create(scanbtn, NULL);
-  lv_label_set_text(label, "Scan");
-  lv_btn_set_action(scanbtn, LV_BTN_ACTION_PR, wifi_scan_btn_cb);
-  return LV_RES_OK;
-}
-
 
 
 /*********************************************************************

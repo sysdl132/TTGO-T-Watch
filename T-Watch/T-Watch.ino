@@ -5,7 +5,6 @@
 #include "freertos/timers.h"
 #include "freertos/queue.h"
 #include "struct_def.h"
-#include <WiFi.h>
 #include "src/lvgl/src/lvgl.h"
 #include "lv_menu.h"
 #include <Ticker.h>
@@ -50,36 +49,6 @@ power_data_t data;
 
 static void time_task(void *param);
 
-void wifi_event_setup()
-{
-  WiFiEventId_t eventID = WiFi.onEvent([](WiFiEvent_t event, WiFiEventInfo_t info) {
-    Serial.print("WiFi lost connection. Reason: ");
-    Serial.println(info.disconnected.reason);
-  }, WiFiEvent_t::SYSTEM_EVENT_STA_DISCONNECTED);
-
-  eventID = WiFi.onEvent([](WiFiEvent_t event, WiFiEventInfo_t info) {
-    Serial.println("Completed scan for access points");
-    int16_t len =  WiFi.scanComplete();
-    for (int i = 0; i < len; ++i) {
-      lv_wifi_list_add(WiFi.SSID(i).c_str(), WiFi.RSSI(i), WiFi.channel(i));
-    }
-    WiFi.scanDelete();
-  }, WiFiEvent_t::SYSTEM_EVENT_SCAN_DONE);
-
-  eventID = WiFi.onEvent([](WiFiEvent_t event, WiFiEventInfo_t info) {
-    Serial.println("Connected to access point");
-
-  }, WiFiEvent_t::SYSTEM_EVENT_STA_CONNECTED);
-
-  eventID = WiFi.onEvent([](WiFiEvent_t event, WiFiEventInfo_t info) {
-    Serial.print("Obtained IP address: ");
-    Serial.println(WiFi.localIP());
-    task_event_data_t event_data;
-    event_data.type = MESS_EVENT_WIFI;
-    event_data.wifi.event = LVGL_WIFI_CONFIG_CONNECT_SUCCESS;
-    xQueueSend(g_event_queue_handle, &event_data, portMAX_DELAY);
-  }, WiFiEvent_t::SYSTEM_EVENT_STA_GOT_IP);
-}
 
 bool syncRtcBySystemTime()
 {
@@ -97,23 +66,6 @@ bool syncRtcBySystemTime()
 }
 
 
-void syncSystemTimeByRtc()
-{
-  struct tm t_tm;
-  struct timeval val;
-  RTC_Date dt = rtc.getDateTime();
-  t_tm.tm_hour = dt.hour;
-  t_tm.tm_min = dt.minute;
-  t_tm.tm_sec = dt.second;
-  t_tm.tm_year = dt.year - 1900;    //Year, whose value starts from 1900
-  t_tm.tm_mon = dt.month - 1;       //Month (starting from January, 0 for January) - Value range is [0,11]
-  t_tm.tm_mday = dt.day;
-  val.tv_sec = mktime(&t_tm);
-  val.tv_usec = 0;
-  settimeofday(&val, NULL);
-  Serial.print("Get RTC DateTime:");
-  Serial.println(rtc.formatDateTime(PCF_TIMEFORMAT_YYYY_MM_DD_H_M_S));
-}
 
 void setup()
 {
@@ -161,9 +113,6 @@ void setup()
 
   rtc.begin(Wire1);
 
-  syncSystemTimeByRtc();
-
-  wifi_event_setup();
 
   lv_main();
 
@@ -202,58 +151,6 @@ void setup()
   xEventGroupSetBits(g_sync_event_group, BIT0);
 }
 
-
-void wifi_handle(void *data)
-{
-  int16_t len;
-  wifi_struct_t *p = (wifi_struct_t *)data;
-  switch (p->event) {
-    case LVGL_WIFI_CONFIG_SCAN:
-      Serial.println("[WIFI] WIFI Scan Start ...");
-      WiFi.mode(WIFI_STA);
-      WiFi.disconnect();
-      len = WiFi.scanNetworks();
-      Serial.printf("[WIFI] WIFI Scan Done ...Scan %d len\n", len);
-      break;
-    case LVGL_WIFI_CONFIG_SCAN_DONE:
-      break;
-    case LVGL_WIFI_CONFIG_CONNECT_SUCCESS:
-      Serial.println("Connect Success");
-      wifiTicker->detach();
-      delete wifiTicker;
-      lv_wifi_connect_pass();
-      configTzTime("CST-8", "pool.ntp.org");
-
-      task_event_data_t event_data;
-      event_data.type = MESS_EVENT_TIME;
-      event_data.time.event = LVGL_TIME_SYNC;
-      xQueueSend(g_event_queue_handle, &event_data, portMAX_DELAY);
-
-      break;
-    case LVGL_WIFI_CONFIG_CONNECT_FAIL:
-      Serial.println("Connect Fail,Power OFF WiFi");
-      WiFi.disconnect(true);
-      wifiTicker->detach();
-      delete wifiTicker;
-      lv_wifi_connect_fail();
-
-      break;
-    case LVGL_WIFI_CONFIG_TRY_CONNECT: {
-        wifi_auth_t *auth = (wifi_auth_t *)p->ctx;
-        wl_status_t ret = WiFi.begin(auth->ssid, auth->password);
-        wifiTicker = new Ticker();
-        wifiTicker->once_ms(10000, [] {
-          task_event_data_t event_data;
-          event_data.type = MESS_EVENT_WIFI;
-          event_data.wifi.event = LVGL_WIFI_CONFIG_CONNECT_FAIL;
-          xQueueSend(g_event_queue_handle, &event_data, portMAX_DELAY);
-        });
-      }
-      break;
-    default:
-      break;
-  }
-}
 
 void power_handle(void *param)
 {
@@ -298,7 +195,6 @@ void power_handle(void *param)
           backlight_on();
           display_wakeup();
           touch_timer_create();
-          syncSystemTimeByRtc();
           xEventGroupSetBits(g_sync_event_group, BIT0);
         }
       }
@@ -369,9 +265,6 @@ void loop()
           break;
         case MESS_EVENT_SPEK:
           break;
-        case MESS_EVENT_WIFI:
-          wifi_handle(&event_data.wifi);
-          break;
         case MESS_EVENT_TIME:
           time_handle(&event_data.time);
           break;
@@ -434,46 +327,4 @@ extern "C" int get_dc2_status()
 extern "C" int get_dc3_status()
 {
   return axp.isDCDC3Enable();
-}
-extern "C" const char *get_wifi_ssid()
-{
-  return WiFi.SSID() == "" ? "None" : WiFi.SSID().c_str();
-}
-extern "C" const char *get_wifi_rssi()
-{
-  return String(WiFi.RSSI()).c_str();
-}
-extern "C" const char *get_wifi_channel()
-{
-  return String(WiFi.channel()).c_str();
-}
-extern "C" const char *get_wifi_address()
-{
-  return WiFi.localIP().toString().c_str();
-}
-extern "C" const char *get_wifi_mac()
-{
-  return WiFi.macAddress().c_str();
-}
-
-void gps_power_on()
-{
-  axp.setLDO3Mode(1);
-  axp.setPowerOutPut(AXP202_LDO3, AXP202_ON);
-}
-
-void gps_power_off()
-{
-  axp.setPowerOutPut(AXP202_LDO3, AXP202_OFF);
-}
-
-void s7xg_power_on()
-{
-  axp.setLDO4Voltage(AXP202_LDO4_1800MV);
-  axp.setPowerOutPut(AXP202_LDO4, AXP202_ON);
-}
-
-void s7xg_power_off()
-{
-  axp.setPowerOutPut(AXP202_LDO4, AXP202_OFF);
 }

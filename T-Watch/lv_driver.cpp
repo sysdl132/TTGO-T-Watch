@@ -54,10 +54,15 @@ static void touch_timer_reset()
 static void ex_disp_flush(int32_t x1, int32_t y1, int32_t x2, int32_t y2, const lv_color_t *color_array)
 {
   uint32_t size = (x2 - x1 + 1) * (y2 - y1 + 1) * 2;
+  //unsigned long t = millis();
   tft->setAddrWindow(x1, y1, x2, y2);
   tft->pushColors((uint8_t *)color_array, size);
+  //Serial.printf("tft op1 cost: %ld ms\r\n", (millis() - t));
+  //t = millis();
+  //tft->fillScreen(TFT_YELLOW);
+  //Serial.printf("tft op2 cost: %ld ms\r\n", (millis() - t));
   lv_flush_ready();
-  // Serial.printf("ex_disp_flush: x1=%d, x2=%d, y1=%d, y2=%d\r\n", x1, x2, y1, y2);
+  //Serial.printf("ex_disp_flush: x1=%d, x2=%d, y1=%d, y2=%d\r\n", x1, x2, y1, y2);
 }
 
 int tftGetScreenWidth()
