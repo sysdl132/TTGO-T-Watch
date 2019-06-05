@@ -2,8 +2,6 @@
 #ifndef __BOARD_DEF_H
 #define __BOARD_DEF_H
 
-#define ENABLE_BLE           //Turning on will open the BLE module
-
 #define TFT_MISO            -1
 #define TFT_MOSI            19
 #define TFT_SCLK            18

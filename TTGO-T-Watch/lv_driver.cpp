@@ -56,7 +56,7 @@ static void ex_disp_flush(int32_t x1, int32_t y1, int32_t x2, int32_t y2, const 
   tft->setAddrWindow(x1, y1, x2, y2);
   tft->pushColors((uint8_t *)color_array, size);
   lv_flush_ready();
-  Serial.printf("ex_disp_flush: x1=%d, x2=%d, y1=%d, y2=%d\r\n", x1, x2, y1, y2);
+  // Serial.printf("ex_disp_flush: x1=%d, x2=%d, y1=%d, y2=%d\r\n", x1, x2, y1, y2);
 }
 
 int tftGetScreenWidth()

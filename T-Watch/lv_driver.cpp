@@ -2,7 +2,6 @@
 #include "src/TFT_eSPI/TFT_eSPI.h"
 #include <Ticker.h>
 #include "board_def.h"
-#include "src/lvgl/src/lvgl.h"
 #include "freertos/FreeRTOS.h"
 #include "src/FT5206_Library/src/FT5206.h"
 
@@ -10,7 +9,6 @@
 // #define DEBUG_DEMO
 
 static TFT_eSPI *tft = nullptr;
-// static TFT_eSPI *tft = nullptr;
 static FT5206_Class *tp = nullptr;
 static Ticker lvTicker1;
 static Ticker lvTicker2;
@@ -51,20 +49,6 @@ static void touch_timer_reset()
 #endif
 }
 
-static void ex_disp_flush(int32_t x1, int32_t y1, int32_t x2, int32_t y2, const lv_color_t *color_array)
-{
-  uint32_t size = (x2 - x1 + 1) * (y2 - y1 + 1) * 2;
-  //unsigned long t = millis();
-  tft->setAddrWindow(x1, y1, x2, y2);
-  tft->pushColors((uint8_t *)color_array, size);
-  //Serial.printf("tft op1 cost: %ld ms\r\n", (millis() - t));
-  //t = millis();
-  //tft->fillScreen(TFT_YELLOW);
-  //Serial.printf("tft op2 cost: %ld ms\r\n", (millis() - t));
-  lv_flush_ready();
-  //Serial.printf("ex_disp_flush: x1=%d, x2=%d, y1=%d, y2=%d\r\n", x1, x2, y1, y2);
-}
-
 int tftGetScreenWidth()
 {
   return tft->width();
@@ -97,7 +81,7 @@ void display_wakeup()
 
 void display_init()
 {
-  tft = new TFT_eSPI(LV_HOR_RES, LV_VER_RES);
+  tft = new TFT_eSPI(240, 240);
   tft->init();
   tft->setRotation(0);
 
@@ -110,48 +94,50 @@ void display_init()
     tpInit = true;
     Serial.println("Capacitive touchscreen started");
   }
-
-  lv_init();
+  tft->fillScreen(TFT_GREEN);
+  delay(6000);
+  // tft->pushColors((uint8_t *)color_array, size);
+  // lv_init();
 
   /*Initialize the display*/
-  lv_disp_drv_t disp_drv;
-  lv_disp_drv_init(&disp_drv);
-  disp_drv.disp_flush = ex_disp_flush; /*Used in buffered mode (LV_VDB_SIZE != 0  in lv_conf.h)*/
-  lv_disp_drv_register(&disp_drv);
+  //  lv_disp_drv_t disp_drv;
+  //  lv_disp_drv_init(&disp_drv);
+  //  disp_drv.disp_flush = ex_disp_flush; /*Used in buffered mode (LV_VDB_SIZE != 0  in lv_conf.h)*/
+  //  lv_disp_drv_register(&disp_drv);
 
   /*Initialize the touch pad*/
-  lv_indev_drv_t indev_drv;
-  indev_drv.type = LV_INDEV_TYPE_POINTER;
-  indev_drv.read =  [] (lv_indev_data_t *data) -> bool {
-    static TP_Point p;
-    if (!tpInit)    return false;
-    data->state = tp->touched() ? LV_INDEV_STATE_PR : LV_INDEV_STATE_REL;
-    if (data->state == LV_INDEV_STATE_PR)
-    {
-      p = tp->getPoint();
-      p.x = map(p.x, 0, 320, 0, 240);
-      p.y = map(p.y, 0, 320, 0, 240);
-      Serial.printf("touch !!! %d, %d\r\n", p.x, p.y);
-      touch_timer_reset();
-    }
-    /*Set the coordinates (if released use the last pressed coordinates)*/
-    data->point.x = p.x;
-    data->point.y = p.y;
-    return false; /*Return false because no more to be read*/
-  };
-  lv_indev_drv_register(&indev_drv);
+  //  lv_indev_drv_t indev_drv;
+  //  indev_drv.type = LV_INDEV_TYPE_POINTER;
+  //  indev_drv.read =  [] (lv_indev_data_t *data) -> bool {
+  //    static TP_Point p;
+  //    if (!tpInit)    return false;
+  //    data->state = tp->touched() ? LV_INDEV_STATE_PR : LV_INDEV_STATE_REL;
+  //    if (data->state == LV_INDEV_STATE_PR)
+  //    {
+  //      p = tp->getPoint();
+  //      p.x = map(p.x, 0, 320, 0, 240);
+  //      p.y = map(p.y, 0, 320, 0, 240);
+  //      Serial.printf("touch !!! %d, %d\r\n", p.x, p.y);
+  //      touch_timer_reset();
+  //    }
+  //    /*Set the coordinates (if released use the last pressed coordinates)*/
+  //    data->point.x = p.x;
+  //    data->point.y = p.y;
+  //    return false; /*Return false because no more to be read*/
+  //  };
+  //  lv_indev_drv_register(&indev_drv);
+  //
+  //  lvTicker1.attach_ms(20, [] {
+  //    // Serial.printf("lv_tick_inc(20) @ Core: %d\r\n", xPortGetCoreID());
+  //    lv_tick_inc(20);
+  //  });
 
-  lvTicker1.attach_ms(20, [] {
-    // Serial.printf("lv_tick_inc(20) @ Core: %d\r\n", xPortGetCoreID());
-    lv_tick_inc(20);
-  });
+  //  lvTicker2.attach_ms(4, [] {
+  //    // Serial.printf("lv_task_handler() @ Core: %d\r\n", xPortGetCoreID());
+  //    lv_task_handler();
+  //  });
 
-  lvTicker2.attach_ms(4, [] {
-    // Serial.printf("lv_task_handler() @ Core: %d\r\n", xPortGetCoreID());
-    lv_task_handler();
-  });
-
-  touch_timer_create();
+  //  touch_timer_create();
 }
 
 
