@@ -26,7 +26,6 @@ AXP20X_Class axp;
 PCF8563_Class rtc;
 EventGroupHandle_t g_sync_event_group = NULL;
 QueueHandle_t g_event_queue_handle = NULL;
-static Ticker *wifiTicker = nullptr;
 static Ticker btnTicker;
 Button2 btn(USER_BUTTON);
 Ticker pwmTicker;
@@ -82,18 +81,22 @@ void setup()
 
   axp.begin(Wire1);
 
+  Serial.println("1 ...");
   backlight_init();
 
+  Serial.println("2 ...");
+  display_init();
+
+  Serial.println("3 ...");
   //BL Power
   axp.setPowerOutPut(AXP202_LDO2, AXP202_ON);
 
-  int level = backlight_getLevel();
   for (int level = 0; level < 255; level += 25) {
     backlight_adjust(level);
     delay(100);
   }
 
-  display_init();
+  Serial.println("light ok!");
 
   axp.enableIRQ(AXP202_ALL_IRQ, AXP202_OFF);
 
@@ -142,70 +145,7 @@ void setup()
   xEventGroupSetBits(g_sync_event_group, BIT0);
 }
 
-void power_handle(void *param)
-{
-  power_struct_t *p = (power_struct_t *)param;
-  switch (p->event) {
-    case LVGL_POWER_GET_MOINITOR:
-      pwmTicker.attach_ms(1000, [] {
-        data.vbus_vol = axp.getVbusVoltage();
-        data.vbus_cur = axp.getVbusCurrent();
-        data.batt_vol = axp.getBattVoltage();
-        data.batt_cur = axp.isChargeing() ? axp.getBattChargeCurrent() : axp.getBattDischargeCurrent();
-      });
-      break;
-    case LVGL_POWER_MOINITOR_STOP:
-      pwmTicker.detach();
-      break;
-    case LVGL_POWER_IRQ:
-      axp.readIRQ();
-      if (axp.isVbusPlugInIRQ()) {
-      }
-      if (axp.isVbusRemoveIRQ()) {
-      }
-      if (axp.isChargingDoneIRQ()) {
-      }
-      if (axp.isPEKShortPressIRQ()) {
-        if (isBacklightOn()) {
-          // lv_task_enable(false);
-          backlight_off();
-          display_sleep();
-          axp.setPowerOutPut(AXP202_LDO2, AXP202_OFF);
-          xEventGroupClearBits(g_sync_event_group, BIT0);
-          // rtc_clk_cpu_freq_set(RTC_CPU_FREQ_80M);
-          rtc_clk_cpu_freq_set(RTC_CPU_FREQ_2M);
-        } else {
-          rtc_clk_cpu_freq_set(RTC_CPU_FREQ_240M);
-          axp.setPowerOutPut(AXP202_LDO2, AXP202_ON);
-          backlight_on();
-          display_wakeup();
-          touch_timer_create();
-          syncSystemTimeByRtc();
-          xEventGroupSetBits(g_sync_event_group, BIT0);
-        }
-      }
-      axp.clearIRQ();
-      break;
-
-    case LVGL_POWER_ENTER_SLEEP: {
-        int level = backlight_getLevel();
-        for (; level > 0; level -= 25) {
-          backlight_adjust(level);
-          delay(100);
-        }
-        display_off();
-        axp.setPowerOutPut(AXP202_LDO2, AXP202_OFF);
-        esp_sleep_enable_ext1_wakeup( ((uint64_t)(((uint64_t)1) << USER_BUTTON)), ESP_EXT1_WAKEUP_ALL_LOW);
-        esp_deep_sleep_start();
-      }
-      break;
-    default:
-      break;
-  }
-}
-
-void loop()
-{
+void loop() {
   task_event_data_t event_data;
   for (;;) {
     if (xQueueReceive(g_event_queue_handle, &event_data, portMAX_DELAY) == pdPASS) {
@@ -224,7 +164,6 @@ void loop()
         case MESS_EVENT_TIME:
           break;
         case MESS_EVENT_POWER:
-          power_handle(&event_data.power);
           break;
         case MESS_EVENT_BLE:
           break;
@@ -266,45 +205,19 @@ extern "C" int get_dc3_status()
 {
   return axp.isDCDC3Enable();
 }
-extern "C" const char *get_wifi_ssid()
-{
-  return WiFi.SSID() == "" ? "None" : WiFi.SSID().c_str();
-}
-extern "C" const char *get_wifi_rssi()
-{
-  return String(WiFi.RSSI()).c_str();
-}
-extern "C" const char *get_wifi_channel()
-{
-  return String(WiFi.channel()).c_str();
-}
-extern "C" const char *get_wifi_address()
-{
-  return WiFi.localIP().toString().c_str();
-}
-extern "C" const char *get_wifi_mac()
-{
-  return WiFi.macAddress().c_str();
-}
 
-void gps_power_on()
-{
-  axp.setLDO3Mode(1);
-  axp.setPowerOutPut(AXP202_LDO3, AXP202_ON);
-}
+static uint32_t _cpu_freq_mhz = 240;
 
-void gps_power_off()
-{
-  axp.setPowerOutPut(AXP202_LDO3, AXP202_OFF);
-}
-
-void s7xg_power_on()
-{
-  axp.setLDO4Voltage(AXP202_LDO4_1800MV);
-  axp.setPowerOutPut(AXP202_LDO4, AXP202_ON);
-}
-
-void s7xg_power_off()
-{
-  axp.setPowerOutPut(AXP202_LDO4, AXP202_OFF);
+bool cpuFrequencySet(uint32_t cpu_freq_mhz) {
+  if (_cpu_freq_mhz == cpu_freq_mhz) {
+    return true;
+  }
+  rtc_cpu_freq_config_t conf;
+  if (!rtc_clk_cpu_freq_mhz_to_config(cpu_freq_mhz, &conf)) {
+    log_e("CPU clock could not be set to %u MHz", cpu_freq_mhz);
+    return false;
+  }
+  rtc_clk_cpu_freq_set_config(&conf);
+  _cpu_freq_mhz = conf.freq_mhz;
+  return true;
 }

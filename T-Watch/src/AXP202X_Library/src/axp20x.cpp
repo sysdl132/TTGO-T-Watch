@@ -146,7 +146,6 @@ float AXP20X_Class::getAcinVoltage()
 float AXP20X_Class::getAcinCurrent()
 {
     if (!_init)return AXP202_NOT_INIT;
-    float rslt;
     uint8_t hv, lv;
     return _getRegistResult(AXP202_ACIN_CUR_H8, AXP202_ACIN_CUR_L4) * AXP202_ACIN_CUR_STEP;
 }
@@ -254,14 +253,14 @@ float AXP20X_Class::getBattChargeCoulomb()
 {
     float rslt;
     if (!_init)return AXP202_NOT_INIT;
-    //TODO
+    return rslt;
 }
 
 float AXP20X_Class::getBattDischargeCoulomb()
 {
     float rslt;
     if (!_init)return AXP202_NOT_INIT;
-    //TODO
+    return rslt;
 }
 
 int AXP20X_Class::adc1Enable(uint16_t params, bool en)

@@ -27,13 +27,6 @@ typedef enum {
   MESS_EVENT_BLE,
 } message_type_t;
 
-typedef enum {
-  LVGL_WIFI_CONFIG_SCAN = 0,
-  LVGL_WIFI_CONFIG_SCAN_DONE,
-  LVGL_WIFI_CONFIG_CONNECT_SUCCESS,
-  LVGL_WIFI_CONFIG_CONNECT_FAIL,
-  LVGL_WIFI_CONFIG_TRY_CONNECT,
-} wifi_config_event_t;
 
 typedef enum {
   DIR_TYPE,
@@ -100,10 +93,6 @@ typedef struct {
   char password[64];
 } wifi_auth_t;
 
-typedef struct  {
-  wifi_config_event_t event;
-  void *ctx;
-} wifi_struct_t;
 
 typedef struct  {
   motion_event_t event;
@@ -161,8 +150,6 @@ typedef struct {
 
 typedef struct {
   union {
-    gps_struct_t gps;
-    wifi_struct_t wifi;
     motion_struct_t motion;
     time_struct_t time;
     file_struct_t file;

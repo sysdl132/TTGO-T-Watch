@@ -451,6 +451,7 @@ private:
         uint8_t index = 0;
         while (_i2cPort->available())
             data[index++] = _i2cPort->read();
+        return -1;
     }
 
     int _writeByte(uint8_t reg, uint8_t nbytes, uint8_t *data)
@@ -461,6 +462,7 @@ private:
             _i2cPort->write(data[i]);
         }
         _i2cPort->endTransmission();
+        return -1;
     }
 
     static const uint8_t startupParams[];
