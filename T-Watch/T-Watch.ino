@@ -91,7 +91,7 @@ void setup()
   //BL Power
   axp.setPowerOutPut(AXP202_LDO2, AXP202_ON);
 
-  for (int level = 0; level < 255; level += 25) {
+  for (int level = 0; level < 128; level += 25) {
     backlight_adjust(level);
     delay(100);
   }

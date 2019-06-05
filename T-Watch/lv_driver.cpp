@@ -65,6 +65,15 @@ void display_init()
     Serial.println("Capacitive touchscreen started");
   }
   tft->fillScreen(TFT_GREEN);
+
+  tft->drawPixel(tft->width() / 2, tft->height() / 2, TFT_RED);
+  tft->setCursor(0, 0);
+  tft->setTextColor(TFT_YELLOW);
+  tft->setTextSize(1);
+  tft->setTextWrap(true);
+  tft->setTextFont(7);
+  tft->println("12345");
+  // tft->invertDisplay(false);
 }
 
 void backlight_init(void) {
