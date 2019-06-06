@@ -81,6 +81,12 @@ void setup()
 
   Serial.println("light ok!");
 
+  Serial.println(ESP.getFreeHeap());
+
+  test_canvas_buffer();
+
+  Serial.println(ESP.getFreeHeap());
+  
   while (1) {
     graphic_test();
   }

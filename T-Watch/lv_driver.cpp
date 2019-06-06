@@ -5,6 +5,8 @@
 #include "freertos/FreeRTOS.h"
 #include "src/FT5206_Library/src/FT5206.h"
 
+#include "Adafruit_GFX.h"
+
 #define BACKLIGHT_CHANNEL   ((uint8_t)1)
 // #define DEBUG_DEMO
 
@@ -145,6 +147,31 @@ void testdrawrects(uint16_t color) {
   for (int16_t x = 0; x < tft.width(); x += 6) {
     tft.drawRect(tft.width() / 2 - x / 2, tft.height() / 2 - x / 2 , x, x, color);
   }
+}
+
+
+void test_canvas_buffer() {
+  GFXcanvas16 canvas(240, 240);
+
+  Serial.println(ESP.getFreeHeap());
+  uint16_t* buffer = canvas.getBuffer();
+
+  unsigned long start_time = millis();
+  for (int i = 0; i < 100; i++) {
+    if (i % 2) {
+      canvas.fillScreen(0xF800); // red
+    } else {
+      canvas.fillScreen(0xFFE0); // yellow
+    }
+    tft.setAddrWindow(0, 0, 240, 240);
+    tft.pushColors(buffer, 240 * 240);
+    delay(55);
+  }
+  // 30ms per frame @ 40M SPI, 29.39 ms pure communication time
+  // 21ms per frame @ 80M SPI, 17.87 ms pure communication time
+  Serial.printf("100 frames cost: %d ms! \r\n", millis() - start_time);
+
+  delay(4000);
 }
 
 

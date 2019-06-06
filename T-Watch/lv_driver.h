@@ -6,6 +6,8 @@
 
 void display_init();
 void graphic_test();
+void test_canvas_buffer();
+
 int tftGetScreenHeight();
 int tftGetScreenWidth();
 void touch_timer_create();
