@@ -83,10 +83,12 @@ void setup()
 
   Serial.println(ESP.getFreeHeap());
 
+  graphic_test();
+
   test_canvas_buffer();
 
   Serial.println(ESP.getFreeHeap());
-  
+
   while (1) {
     graphic_test();
   }

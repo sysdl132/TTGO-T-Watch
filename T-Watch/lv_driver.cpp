@@ -2,6 +2,7 @@
 #include "src/TFT_eSPI/TFT_eSPI.h"
 #include <Ticker.h>
 #include "board_def.h"
+#include "esp_jpg_decode.h"
 #include "freertos/FreeRTOS.h"
 #include "src/FT5206_Library/src/FT5206.h"
 
@@ -149,15 +150,109 @@ void testdrawrects(uint16_t color) {
   }
 }
 
+static uint32_t _jpg_read(void * arg, size_t index, uint8_t *buf, size_t len) {
+  if (buf) {
+    memcpy(buf, test_map + index, len);
+  }
+  return len;
+}
+
+typedef struct {
+  uint16_t width;
+  uint16_t height;
+  uint16_t data_offset;
+  const uint8_t *input;
+  uint8_t *output;
+} rgb_jpg_decoder;
+
+static bool _rgb_write(void * arg, uint16_t x, uint16_t y, uint16_t w, uint16_t h, uint8_t *data) {
+  // Serial.printf("_rgb_write: %d, %d, %d, %d, %d\r\n", x, y, w, h, data);
+  rgb_jpg_decoder * jpeg = (rgb_jpg_decoder *)arg;
+  if (!data) {
+    if (x == 0 && y == 0) {
+      //write start
+      jpeg->width = w;
+      jpeg->height = h;
+      Serial.printf("w=%d, h=%d\r\n", w, h);
+      // if output is null, this is BMP
+      if (!jpeg->output) {
+        Serial.println("malloc@@@");
+        jpeg->output = (uint8_t *)malloc((w * h * 3) + jpeg->data_offset);
+        if (!jpeg->output) {
+          return false;
+        }
+      }
+    } else {
+      Serial.println("write end");
+      //write end
+    }
+    return true;
+  }
+
+  size_t jw = jpeg->width * 3;
+  size_t t = y * jw;
+  size_t b = t + (h * jw);
+  size_t l = x * 3;
+  uint8_t *out = jpeg->output + jpeg->data_offset;
+  uint8_t *o = out;
+  size_t iy, ix;
+
+  w = w * 3;
+
+  for (iy = t; iy < b; iy += jw) {
+    o = out + iy + l;
+    for (ix = 0; ix < w; ix += 3) {
+      o[ix] = data[ix + 2];
+      o[ix + 1] = data[ix + 1];
+      o[ix + 2] = data[ix];
+    }
+    data += w;
+  }
+  return true;
+}
 
 void test_canvas_buffer() {
   GFXcanvas16 canvas(240, 240);
 
+  uint8_t * bitmap_rgb888 = (uint8_t*) ps_malloc(240 * 180 * 3);
+  uint8_t * bitmap_rgb565 = (uint8_t*) ps_malloc(240 * 180 * 2);
+
+  if (bitmap_rgb888 <= 0 || bitmap_rgb565 <= 0) {
+    Serial.println("failed");
+  }
+
+  Serial.println(ESP.getFreeHeap());
+  rgb_jpg_decoder jpeg;
+  jpeg.width = 0;
+  jpeg.height = 0;
+  jpeg.input = test_map;
+  jpeg.output = bitmap_rgb888;
+  jpeg.data_offset = 0;
+
+  if (esp_jpg_decode(sizeof(test_map), JPG_SCALE_NONE, _jpg_read, _rgb_write, (void*)&jpeg) != ESP_OK) {
+    Serial.println("esp_jpg_decode failed.");
+  } else {
+    Serial.println("esp_jpg_decode ok!");
+  }
+
+  for (uint16_t row = 0; row < 180; row++) {
+    for (uint16_t col = 0; col < 240; col++) {
+      uint16_t index = row * 240 + col;
+      uint8_t r = bitmap_rgb888[index * 3] >> 3;
+      uint8_t g = bitmap_rgb888[index * 3 + 1] >> 2;
+      uint8_t b = bitmap_rgb888[index * 3 + 2] >> 3;
+      uint8_t byte1 = (b << 3) | (g >> 3);
+      uint8_t byte2 = (g << 5) | r;
+      bitmap_rgb565[index * 2] = byte1;
+      bitmap_rgb565[index * 2 + 1] = byte2;
+    }
+  }
+  Serial.println("----565 ok!");
   Serial.println(ESP.getFreeHeap());
   uint16_t* buffer = canvas.getBuffer();
 
   unsigned long start_time = millis();
-  for (int i = 0; i < 100; i++) {
+  for (int i = 0; i < 50; i++) {
     if (i % 2) {
       canvas.fillScreen(0xF800); // red
     } else {
@@ -165,8 +260,10 @@ void test_canvas_buffer() {
     }
     tft.setAddrWindow(0, 0, 240, 240);
     tft.pushColors(buffer, 240 * 240);
-    delay(55);
+    // tft.pushColors((uint16_t*)test0, 240 * 180);
   }
+  tft.pushImage(0, 0, 240, 180, (uint16_t*)bitmap_rgb565);
+  delay(50005);
   // 30ms per frame @ 40M SPI, 29.39 ms pure communication time
   // 21ms per frame @ 80M SPI, 17.87 ms pure communication time
   Serial.printf("100 frames cost: %d ms! \r\n", millis() - start_time);
