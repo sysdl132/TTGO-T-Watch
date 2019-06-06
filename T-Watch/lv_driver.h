@@ -1,11 +1,11 @@
-#pragma once
-#include <Arduino.h>
+#ifndef _LV_DRIVER_H
+#define _LV_DRIVER_H
+
+#include "src/TFT_eSPI/TFT_eSPI.h"
 
 
-#ifdef __cplusplus
-extern "C" {
-#endif
 void display_init();
+void graphic_test();
 int tftGetScreenHeight();
 int tftGetScreenWidth();
 void touch_timer_create();
@@ -22,6 +22,5 @@ uint8_t backlight_getLevel();
 
 void serial_print(char * str);
 
-#ifdef __cplusplus
-} /* extern "C" */
-#endif
+
+#endif  //*_LV_DRIVER_H*/

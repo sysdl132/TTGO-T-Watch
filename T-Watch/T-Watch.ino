@@ -1,4 +1,5 @@
 #include "board_def.h"
+#include "struct_def.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 #include "freertos/timers.h"
@@ -48,24 +49,6 @@ bool syncRtcBySystemTime()
 }
 
 
-void syncSystemTimeByRtc()
-{
-  struct tm t_tm;
-  struct timeval val;
-  RTC_Date dt = rtc.getDateTime();
-  t_tm.tm_hour = dt.hour;
-  t_tm.tm_min = dt.minute;
-  t_tm.tm_sec = dt.second;
-  t_tm.tm_year = dt.year - 1900;    //Year, whose value starts from 1900
-  t_tm.tm_mon = dt.month - 1;       //Month (starting from January, 0 for January) - Value range is [0,11]
-  t_tm.tm_mday = dt.day;
-  val.tv_sec = mktime(&t_tm);
-  val.tv_usec = 0;
-  settimeofday(&val, NULL);
-  Serial.print("Get RTC DateTime:");
-  Serial.println(rtc.formatDateTime(PCF_TIMEFORMAT_YYYY_MM_DD_H_M_S));
-}
-
 void setup()
 {
   Serial.begin(115200);
@@ -98,6 +81,10 @@ void setup()
 
   Serial.println("light ok!");
 
+  while (1) {
+    graphic_test();
+  }
+
   axp.enableIRQ(AXP202_ALL_IRQ, AXP202_OFF);
 
   axp.adc1Enable(0xFF, AXP202_OFF);
@@ -111,8 +98,6 @@ void setup()
   axp.clearIRQ();
 
   rtc.begin(Wire1);
-
-  syncSystemTimeByRtc();
 
   btn.setLongClickHandler([](Button2 & b) {
     task_event_data_t event_data;
