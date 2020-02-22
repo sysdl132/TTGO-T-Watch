@@ -1,8 +1,9 @@
-TTGO T-Watch    
+TTGO T-Watch[![Fork me on Gitee](https://gitee.com/sysdl132/TTGO-T-Watch/widgets/widget_5.svg)](https://gitee.com/sysdl132/TTGO-T-Watch)
 =================================
 <img src="img/1.jpg" height="400"/>
 <img src="img/2.jpg" height="400"/>
 
+![hang1](https://gitee.com/sysdl132/TTGO-T-Watch/badge/star.svg?theme=dark)
 
 T-Watch is an ESP32-based smart watch hardware designed by Shenzhen Xinyuan Electronics Co., Ltd. Hardware configuration with main core SOC (ESP32), 16MBytes large flash, 8MBytes external SPRAM, integrated multi-channel programmable power management chip ( AXP202), onboard three-axis accelerometer (BMA423), built-in step counter algorithm and other multi-function GSensor, with a variety of different configurations of internal replaceable backplane, such as LORA, GPS, SIM, SD
 
