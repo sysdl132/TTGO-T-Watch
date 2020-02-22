@@ -1,8 +1,8 @@
-
+// Note: Disabled GPS.If you have GPS please jump to Xinyuan-Lilygo/TTGO-T-Watch.
 #ifndef __BOARD_DEF_H
 #define __BOARD_DEF_H
 
-#define ENABLE_BLE           //Turning on will open the BLE module
+#define ENABLE_BLE
 
 #define TFT_MISO            -1
 #define TFT_MOSI            19
@@ -36,4 +36,4 @@
 #define BMA423_INT1         39
 #define BMA423_INT2         0
 
-#endif
+#endif //board_def.h
