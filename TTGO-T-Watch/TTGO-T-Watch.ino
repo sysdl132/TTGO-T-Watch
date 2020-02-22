@@ -39,6 +39,10 @@ power_data_t data;
 
 static void time_task(void *param);
 
+/**********************
+  defines
+**********************/
+
 void wifi_event_setup()
 {
   WiFiEventId_t eventID = WiFi.onEvent([](WiFiEvent_t event, WiFiEventInfo_t info) {
@@ -102,6 +106,7 @@ void syncSystemTimeByRtc()
   settimeofday(&val, NULL);
   Serial.print("Get RTC DateTime:");
   Serial.println(rtc.formatDateTime(PCF_TIMEFORMAT_YYYY_MM_DD_H_M_S));
+  Serial.println("End of localtime");
 }
 
 void setup()
