@@ -1,4 +1,4 @@
-TTGO T-Watch[![Fork me on Gitee](https://gitee.com/sysdl132/TTGO-T-Watch/widgets/widget_5.svg)](https://gitee.com/sysdl132/TTGO-T-Watch)
+TTGO T-Watch
 =================================
 <img src="img/1.jpg" height="400"/>
 <img src="img/2.jpg" height="400"/>
@@ -83,5 +83,7 @@ T-Watch is an ESP32-based smart watch hardware designed by Shenzhen Xinyuan Elec
 
 
 [Open in Github Desktop](x-github-client://openRepo/https://github.com/sysdl132/TTGO-T-Watch)
+
+China Gitee availble:[![Fork me on Gitee](https://gitee.com/sysdl132/TTGO-T-Watch/widgets/widget_5.svg)](https://gitee.com/sysdl132/TTGO-T-Watch)
 
 ### The pictures and fonts used in the program are from the network. If there is any infringement, please inform the author.
